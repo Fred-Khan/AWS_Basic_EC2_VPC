@@ -2,6 +2,24 @@
 
 Step-by-step guide to creating a virtual cloud network on AWS that includes a Linux webserver with both a public and private IPv4 address and a database server with only a private IPv4 address i.e. a cloud network with a webserver that can publicly access the internet and a database server that is isolated within the private subnet but accessible from the webserver.
 
+## AWS VPC Architecture Diagram
+The following diagram illustrates the AWS cloud architecture with a public web server and a private database server that you will build as described in this tutorial.
+
+```mermaid
+graph TD
+    A[Internet] -->|"HTTP/HTTPS/SSH"| B[Internet Gateway: MyInternetGateway]
+    B --> C[VPC: MyVPC<br>10.0.0.0/16]
+    C --> D[Public Subnet: PublicSubnet<br>10.0.1.0/24<br>us-east-1a]
+    C --> E[Private Subnet: PrivateSubnet<br>10.0.2.0/24<br>us-east-1a]
+    D --> F[EC2: WebServer<br>t2.micro, Amazon Linux 2<br>Public IP: Enabled<br>SG: WebServerSG<br>Ports: 80, 443, 22<br>Software: Apache]
+    E --> G[EC2: DatabaseServer<br>t2.micro, Amazon Linux 2<br>Public IP: Disabled<br>SG: DatabaseServerSG<br>Port: 3306<br>Software: MySQL]
+    F -->|"MySQL (port 3306)"| G
+    D --> H[Route Table: PublicRouteTable<br>0.0.0.0/0 -> Internet Gateway]
+    E --> I[Route Table: PrivateRouteTable<br>No Internet Route]
+    C --> J[Optional: NACLs, CloudWatch]
+```
+
+##
 ### **Step 1: Set Up Your AWS Account**
 1. **Sign in to AWS Management Console**: If you don’t have an AWS account, sign up at [aws.amazon.com](https://aws.amazon.com/).
 2. **Navigate to the AWS Management Console**: Once logged in, you will be directed to the AWS Management Console.
