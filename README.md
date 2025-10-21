@@ -7,16 +7,26 @@ The following diagram illustrates the AWS cloud architecture with a public web s
 
 ```mermaid
 graph TD
-    A[Internet] -->|"HTTP/HTTPS/SSH"| B[Internet Gateway: MyInternetGateway]
-    B --> C[VPC: MyVPC<br>10.0.0.0/16]
-    C --> D[Public Subnet: PublicSubnet<br>10.0.1.0/24<br>us-east-1a]
-    C --> E[Private Subnet: PrivateSubnet<br>10.0.2.0/24<br>us-east-1a]
-    D --> F[EC2: WebServer<br>t2.micro, Amazon Linux 2<br>Public IP: Enabled<br>SG: WebServerSG<br>Ports: 80, 443, 22<br>Software: Apache]
-    E --> G[EC2: DatabaseServer<br>t2.micro, Amazon Linux 2<br>Public IP: Disabled<br>SG: DatabaseServerSG<br>Port: 3306<br>Software: MySQL]
-    F -->|"MySQL (port 3306)"| G
-    D --> H[Route Table: PublicRouteTable<br>0.0.0.0/0 -> Internet Gateway]
-    E --> I[Route Table: PrivateRouteTable<br>No Internet Route]
-    C --> J[Optional: NACLs, CloudWatch]
+    IGW["Internet Gateway<br/>Attached to VPC"] -->|Routes public traffic| RT["Custom Route Table<br/>0.0.0.0/0 to IGW<br/>Associated with Public Subnet"]
+    
+    VPC["VPC<br/>CIDR: 10.0.0.0/16"] -->|Contains| PS["Public Subnet<br/>CIDR: 10.0.1.0/24<br/>Availability Zone: us-east-1a"]
+    PS -->|Associated with| RT
+    
+    SG["Security Group<br/>Inbound: SSH (22) from 0.0.0.0/0<br/>Outbound: All traffic"] -->|Attached to| EC2
+    
+    PS -->|Launched in| EC2["EC2 Instance<br/>AMI: Amazon Linux 2<br/>Instance Type: t2.micro<br/>Key Pair: my-key-pair"]
+    
+    EIP["Elastic IP<br/>Allocated and associated to EC2"] -->|Public IP for| EC2
+    
+    IGW -.->|Enables internet access| EC2
+
+    style VPC fill:#000000,stroke:#ffffff,color:#ffffff
+    style PS fill:#000000,stroke:#ffffff,color:#ffffff
+    style IGW fill:#000000,stroke:#ffffff,color:#ffffff
+    style RT fill:#000000,stroke:#ffffff,color:#ffffff
+    style SG fill:#000000,stroke:#ffffff,color:#ffffff
+    style EC2 fill:#000000,stroke:#ffffff,color:#ffffff
+    style EIP fill:#000000,stroke:#ffffff,color:#ffffff
 ```
 
 ##
