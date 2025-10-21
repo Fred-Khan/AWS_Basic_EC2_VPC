@@ -7,26 +7,47 @@ The following diagram illustrates the AWS cloud architecture with a public web s
 
 ```mermaid
 graph TD
-    IGW["Internet Gateway<br/>Attached to VPC"] -->|Routes public traffic| RT["Custom Route Table<br/>0.0.0.0/0 to IGW<br/>Associated with Public Subnet"]
-    
-    VPC["VPC<br/>CIDR: 10.0.0.0/16"] -->|Contains| PS["Public Subnet<br/>CIDR: 10.0.1.0/24<br/>Availability Zone: us-east-1a"]
-    PS -->|Associated with| RT
-    
-    SG["Security Group<br/>Inbound: SSH (22) from 0.0.0.0/0<br/>Outbound: All traffic"] -->|Attached to| EC2
-    
-    PS -->|Launched in| EC2["EC2 Instance<br/>AMI: Amazon Linux 2<br/>Instance Type: t2.micro<br/>Key Pair: my-key-pair"]
-    
-    EIP["Elastic IP<br/>Allocated and associated to EC2"] -->|Public IP for| EC2
-    
-    IGW -.->|Enables internet access| EC2
+    %% Internet Gateway
+    IGW["Internet Gateway<br/>Attached to VPC"] -->|0.0.0.0/0 → IGW| RT_PUBLIC["Public Route Table<br/>0.0.0.0/0 → IGW"]
 
+    %% VPC
+    VPC["VPC<br/>CIDR: 10.0.0.0/16"] -->|Contains| PS["Public Subnet<br/>10.0.1.0/24<br/>us-east-1a"]
+    VPC -->|Contains| PRIV["Private Subnet<br/>10.0.2.0/24<br/>us-east-1b"]
+
+    %% Route Table Associations
+    PS -->|Uses| RT_PUBLIC
+    PRIV -->|Uses| RT_PRIVATE["Private Route Table<br/>0.0.0.0/0 → NAT Gateway"]
+
+    %% NAT Gateway (in Public Subnet)
+    EIP_NAT["Elastic IP<br/>(for NAT Gateway)"] --> NAT["NAT Gateway<br/>In Public Subnet"]
+    PS -->|Hosts| NAT
+    NAT -->|Routes outbound traffic| RT_PRIVATE
+
+    %% Public EC2 (Web Server)
+    SG_PUBLIC["Security Group: Web<br/>Inbound:<br/>• SSH (22) from Bastion/Your IP<br/>• HTTP (80) from 0.0.0.0/0<br/>• HTTPS (443) from 0.0.0.0/0<br/>Outbound: All"] -->|Attached to| WEB["EC2: Web Server<br/>Amazon Linux 2<br/>t2.micro<br/>Public IP: Auto"]
+    PS -->|Launched in| WEB
+
+    %% Private EC2 (App/DB)
+    SG_PRIVATE["Security Group: App/DB<br/>Inbound:<br/>• SSH (22) from Web Server SG<br/>• App Port (e.g. 8080) from Web SG<br/>• DB Port (3306) from App SG<br/>Outbound: All (via NAT)"] -->|Attached to| APP["EC2: App/DB Server<br/>Amazon Linux 2<br/>t2.micro<br/>No Public IP"]
+    PRIV -->|Launched in| APP
+
+    %% Internet Access
+    IGW -.->|Internet| WEB
+    NAT -.->|Outbound Only| APP
+
+    %% Styling: Black boxes, white text
     style VPC fill:#000000,stroke:#ffffff,color:#ffffff
     style PS fill:#000000,stroke:#ffffff,color:#ffffff
+    style PRIV fill:#000000,stroke:#ffffff,color:#ffffff
     style IGW fill:#000000,stroke:#ffffff,color:#ffffff
-    style RT fill:#000000,stroke:#ffffff,color:#ffffff
-    style SG fill:#000000,stroke:#ffffff,color:#ffffff
-    style EC2 fill:#000000,stroke:#ffffff,color:#ffffff
-    style EIP fill:#000000,stroke:#ffffff,color:#ffffff
+    style RT_PUBLIC fill:#000000,stroke:#ffffff,color:#ffffff
+    style RT_PRIVATE fill:#000000,stroke:#ffffff,color:#ffffff
+    style NAT fill:#000000,stroke:#ffffff,color:#ffffff
+    style EIP_NAT fill:#000000,stroke:#ffffff,color:#ffffff
+    style SG_PUBLIC fill:#000000,stroke:#ffffff,color:#ffffff
+    style SG_PRIVATE fill:#000000,stroke:#ffffff,color:#ffffff
+    style WEB fill:#000000,stroke:#ffffff,color:#ffffff
+    style APP fill:#000000,stroke:#ffffff,color:#ffffff
 ```
 
 ##
